@@ -1,5 +1,4 @@
 # Databricks notebook source
-
 import pandas as pd
 
 
@@ -74,13 +73,17 @@ df_ha_pd.groupby(["output"])['sex'].value_counts(normalize=True)
 
 # COMMAND ----------
 
+df_ha_pd.groupby(["sex", "cp"])['output'].value_counts(normalize=True)
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC
 # MAGIC 83% das pessoas do sexo 0 tiveram H-A, contra 17% que não tiveram
 # MAGIC
 # MAGIC 56% das pessoas do sexo 1 tiveram H-A, contra 43% que não tiveram
 # MAGIC
-# MAGIC # Conlusão: sexo 0 mais propenso a ter H-A que o sexo 1
+# MAGIC # Conlusão: sexo 1 mais propenso a ter H-A que o sexo 0
 
 # COMMAND ----------
 
@@ -146,6 +149,10 @@ df_ha_pd.groupby(["cp"])['output'].value_counts(normalize=True)
 
 # COMMAND ----------
 
+df_ha_pd.groupby(["cp","sex"])['output'].value_counts(normalize=True) 
+
+# COMMAND ----------
+
 df_ha_pd.groupby(["output"])['cp'].value_counts(normalize=True) 
 
 # COMMAND ----------
@@ -162,6 +169,34 @@ df_ha_pd.groupby(["output"])['cp'].value_counts(normalize=True)
 # MAGIC Chest pain type 2 = Non-anginal Pain => 41%  *****> Maior incidência
 # MAGIC
 # MAGIC Chest pain type 3 = Asymptomatic     => 10%  
+
+# COMMAND ----------
+
+df_ha_pd.groupby(["output"])['oldpeak'].value_counts(normalize=True) 
+
+# COMMAND ----------
+
+df_ha_pd.groupby(["output"])['exng'].value_counts(normalize=True) 
+
+# COMMAND ----------
+
+
+df_ha_pd.groupby(["output"])['restecg'].value_counts(normalize=True) 
+
+# COMMAND ----------
+
+df_ha_pd.groupby(["output"])['thall'].value_counts(normalize=True) 
+
+# COMMAND ----------
+
+sns.kdeplot(
+    data=df_ha_pd,
+    x="age",  # Substitua "variavel1" pelo nome da primeira variável
+    y="cp",  # Substitua "variavel2" pelo nome da segunda variável
+    fill=True,
+    hue="output", alpha=0.5,
+    cmap='Blues'
+)
 
 # COMMAND ----------
 
@@ -389,7 +424,7 @@ df_ha_pd.corr()
 
 # COMMAND ----------
 
-sns.heatmap(df__ha_pd.corr(), cmap="viridis", )
+sns.heatmap(df_ha_pd.corr(), cmap="viridis", )
 
 # COMMAND ----------
 
