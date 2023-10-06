@@ -1,6 +1,13 @@
 # Databricks notebook source
 import pandas as pd
 
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+import warnings
+warnings.filterwarnings("ignore")
+
 # COMMAND ----------
 
 #%sql
@@ -9,42 +16,6 @@ df_Spark = spark.read.table("hive_metastore.default.heart_attack_gold")
 df = df_Spark.toPandas()
 
 
-
-# COMMAND ----------
-
-from pyspark.sql import functions as F
-import seaborn as sns
-import matplotlib.pyplot as plt
-
-
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler 
-from sklearn.svm import SVC
-from sklearn.linear_model import LogisticRegression
-import xgboost as xgb
-from sklearn.metrics import accuracy_score
-from sklearn.neighbors import KNeighborsClassifier  
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.naive_bayes import BernoulliNB
-from sklearn.naive_bayes import GaussianNB
-from sklearn.metrics import confusion_matrix
-import warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-
-
-import mlflow
-import mlflow.lightgbm
-import lightgbm as lgb
-import shap
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, f1_score, confusion_matrix
-from sklearn.pipeline import Pipeline
-from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import StandardScaler
 
 # COMMAND ----------
 
@@ -62,32 +33,16 @@ display(df)
 
 # COMMAND ----------
 
-y = df["output"]
-X = df.drop(columns="output")
-X = df.drop(columns="trtbps")
-X = df.drop(columns="chol")
-X = df.drop(columns="fbs")
+import mlflow
+import mlflow.lightgbm
 
 # COMMAND ----------
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
+mlflow.end_run()
 
 # COMMAND ----------
 
 mlflow.start_run()
-
-# COMMAND ----------
-
-#cat_cols = ['sex','exng','caa','cp','fbs','restecg','slp','thall']
-#con_cols = ["age","trtbps","chol","thalachh","oldpeak"]
-
-cat_cols = ['sex','exng','caa','cp','restecg','slp','thall']
-con_cols = ["age","thalachh","oldpeak"]
-
-target_col = ["output"]
-print("The categorial cols are : ", cat_cols)
-print("The continuous cols are : ", con_cols)
-print("The target variable is :  ", target_col)
 
 # COMMAND ----------
 
@@ -116,15 +71,20 @@ print('Packages imported...')
 
 # COMMAND ----------
 
+
 # creating a copy of df
 df1 = df
+#df1 = df1.drop(['output'],axis=1)
+#df1 = df1.drop(['trtbps'],axis=1)
+#df1 = df1.drop(['chol'],axis=1)
+#df1 = df1.drop(['fbs'],axis=1)
 
 # define the columns to be encoded and scaled
-#cat_cols = ['sex','exng','caa','cp','fbs','restecg','slp','thall']
-#con_cols = ["age","trtbps","chol","thalachh","oldpeak"]
+cat_cols = ['sex','exng','caa','cp','fbs','restecg','slp','thall']
+con_cols = ["age","trtbps","chol","thalachh","oldpeak"]
 
-cat_cols = ['sex','exng','caa','cp','restecg','slp','thall']
-con_cols = ["age","thalachh","oldpeak"]
+#cat_cols = ['sex','exng','caa','cp','restecg','slp','thall']
+#con_cols = ["age","thalachh","oldpeak"]
 
 target_col = ["output"]
 print("The categorial cols are : ", cat_cols)
@@ -135,11 +95,11 @@ print("The target variable is :  ", target_col)
 df1 = pd.get_dummies(df1, columns = cat_cols, drop_first = True)
 
 # defining the features and target
+
 X = df1.drop(['output'],axis=1)
-X = df1.drop(columns="output")
-X = df1.drop(columns="trtbps")
-X = df1.drop(columns="chol")
-X = df1.drop(columns="fbs")
+#X = df1.drop(['trtbps'],axis=1)
+#X = df1.drop(['chol'],axis=1)
+#X = df1.drop(['fbs'],axis=1)
 
 y = df1[['output']]
 
@@ -153,11 +113,40 @@ X.head()
 
 # COMMAND ----------
 
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
+
+# COMMAND ----------
+
+cat_cols = ['sex','exng','caa','cp','fbs','restecg','slp','thall']
+con_cols = ["age","trtbps","chol","thalachh","oldpeak"]
+
+#cat_cols = ['sex','exng','caa','cp','restecg','slp','thall']
+#con_cols = ["age","thalachh","oldpeak"]
+
+target_col = ["output"]
+print("The categorial cols are : ", cat_cols)
+print("The continuous cols are : ", con_cols)
+print("The target variable is :  ", target_col)
+
+# COMMAND ----------
+
 X_train, X_test, y_train, y_test = train_test_split(X,y, test_size = 0.2, random_state = 42)
 print("The shape of X_train is      ", X_train.shape)
 print("The shape of X_test is       ",X_test.shape)
 print("The shape of y_train is      ",y_train.shape)
 print("The shape of y_test is       ",y_test.shape)
+
+# COMMAND ----------
+
+# instantiate the classifier
+gbt = GradientBoostingClassifier(n_estimators = 300,max_depth=1,subsample=0.8,max_features=0.2,random_state=42)
+
+# fitting the model
+gbt.fit(X_train,y_train)
+
+# predicting values
+y_pred = gbt.predict(X_test)
+print("The test accuracy score of Gradient Boosting Classifier is ", accuracy_score(y_test, y_pred))
 
 # COMMAND ----------
 
@@ -168,12 +157,93 @@ print("The shape of y_test is       ",y_test.shape)
 
 # instantiating the object and fitting
 clf = SVC(kernel='linear', C=1, random_state=42).fit(X_train,y_train)
-
+clf.fit(X_train, y_train)
 # predicting the values
 y_pred = clf.predict(X_test)
 
 # printing the test accuracy
 print("The test accuracy score of SVM is ", accuracy_score(y_test, y_pred))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Registrar Modelo Linear
+
+# COMMAND ----------
+
+# instantiate the classifier
+gbt = GradientBoostingClassifier(n_estimators = 300,max_depth=1,subsample=0.8,max_features=0.2,random_state=42)
+
+# fitting the model
+gbt.fit(X_train,y_train)
+
+# predicting values
+y_pred = gbt.predict(X_test)
+print("The test accuracy score of Gradient Boosting Classifier is ", accuracy_score(y_test, y_pred))
+print(classification_report(y_test, y_pred))
+
+# COMMAND ----------
+
+# clf = lgb.LGBMClassifier(objective='multiclass', class_weight='balanced')
+# clf = lgb.LGBMRegressor(objective='multiclass', class_weight='balanced')
+
+# COMMAND ----------
+
+# Define numerical features (all features in this case)
+##numerical_features = X.columns.tolist()
+
+# Create a numerical transformer with StandardScaler
+##numerical_transformer = Pipeline(steps=[
+##    ('scaler', StandardScaler())
+##])
+
+# Create a preprocessor
+##preprocessor = ColumnTransformer(
+##    transformers=[
+##        ('num', numerical_transformer, numerical_features)
+##    ])
+
+# COMMAND ----------
+
+##pipeline = Pipeline(steps=[
+##    ('preprocessor', preprocessor),
+##    ('classifier', clf)
+##])#
+
+# COMMAND ----------
+
+##pipeline
+
+# COMMAND ----------
+
+##pipeline.fit(X_train, y_train)
+
+# COMMAND ----------
+
+##y_pred = pipeline.predict(X_test)
+
+# COMMAND ----------
+
+# antigo
+##print(classification_report(y_test, y_pred))
+
+# COMMAND ----------
+
+# novo
+##print(classification_report(y_test, y_pred))
+
+# COMMAND ----------
+
+##conf_matrix = confusion_matrix(y_test, y_pred)
+
+# COMMAND ----------
+
+##sns.heatmap(conf_matrix, annot=True, fmt="d")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ###Hyperparameter tuning of SVC
 
 # COMMAND ----------
 
@@ -199,7 +269,140 @@ y_pred = searcher.predict(X_test)
 # printing the test accuracy
 print("The test accuracy score of SVM after hyper-parameter tuning is ", accuracy_score(y_test, y_pred))
 
+print(classification_report(y_test, y_pred))
+
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ###Hyperparameter tuning of SVC
+# MAGIC ###Logistic Regression
+
+# COMMAND ----------
+
+# instantiating the object
+logreg = LogisticRegression()
+
+# fitting the object
+logreg.fit(X_train, y_train)
+
+# calculating the probabilities
+y_pred_proba = logreg.predict_proba(X_test)
+
+# finding the predicted valued
+y_pred = np.argmax(y_pred_proba,axis=1)
+
+# printing the test accuracy
+print("The test accuracy score of Logistric Regression is ", accuracy_score(y_test, y_pred))
+
+print(classification_report(y_test, y_pred))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ###ROC Curve
+
+# COMMAND ----------
+
+# calculating the probabilities
+y_pred_prob = logreg.predict_proba(X_test)[:,1]
+
+# instantiating the roc_cruve
+fpr,tpr,threshols=roc_curve(y_test,y_pred_prob)
+
+# plotting the curve
+plt.plot([0,1],[0,1],"k--",'r+')
+plt.plot(fpr,tpr,label='Logistic Regression')
+plt.xlabel("False Positive Rate")
+plt.ylabel("True Positive Rate")
+plt.title("Logistric Regression ROC Curve")
+plt.show()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ###Tree Models
+
+# COMMAND ----------
+
+# instantiating the object
+dt = DecisionTreeClassifier(random_state = 42)
+
+# fitting the model
+dt.fit(X_train, y_train)
+
+# calculating the predictions
+y_pred = dt.predict(X_test)
+
+# printing the test accuracy
+print("The test accuracy score of Decision Tree is ", accuracy_score(y_test, y_pred))
+
+print(classification_report(y_test, y_pred))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ###Random Forest
+
+# COMMAND ----------
+
+# instantiating the object
+rf = RandomForestClassifier()
+
+# fitting the model
+rf.fit(X_train, y_train)
+
+# calculating the predictions
+y_pred = dt.predict(X_test)
+
+# printing the test accuracy
+print("The test accuracy score of Random Forest is ", accuracy_score(y_test, y_pred))
+
+print(classification_report(y_test, y_pred))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ###Gradient Boosting Classifier - without tuning
+
+# COMMAND ----------
+
+# instantiate the classifier
+gbt = GradientBoostingClassifier(n_estimators = 300,max_depth=1,subsample=0.8,max_features=0.2,random_state=42)
+
+# fitting the model
+gbt.fit(X_train,y_train)
+
+# predicting values
+y_pred = gbt.predict(X_test)
+print("The test accuracy score of Gradient Boosting Classifier is ", accuracy_score(y_test, y_pred))
+
+print(classification_report(y_test, y_pred))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #Registrar Modelo
+
+# COMMAND ----------
+
+mlflow.lightgbm.log_model(
+lgb_model=clf,
+artifact_path="lightgbm-model",
+registered_model_name="classificador-potencial-heart-attack",
+)
+
+# COMMAND ----------
+
+mlflow.end_run()
+
+# COMMAND ----------
+
+X_train.iloc[0].to_dict()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Variáveis importantes
+
+# COMMAND ----------
+
+#feature_importances = pipeline.named_steps['classifier'].feature_importances_

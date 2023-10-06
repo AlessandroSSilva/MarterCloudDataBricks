@@ -831,6 +831,10 @@ X.head()
 
 # COMMAND ----------
 
+X_train.iloc[0].to_dict()
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ###Train and test split
 
